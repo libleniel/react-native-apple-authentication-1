@@ -1,29 +1,20 @@
 import React from 'react';
-import { NativeModules, requireNativeComponent ,Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
-const { AppleAuthentication } = NativeModules;
+const RCTAppleAuthentication = NativeModules.ReactNativeAppleAuthentication;
 
-export const RNSignInWithAppleButton = requireNativeComponent('RNCSignInWithAppleButton');
-
-export const SignInWithAppleButton = (buttonStyle, callBack) => {
-  if(Platform.OS === 'ios'){
-    return <RNSignInWithAppleButton style={buttonStyle} onPress={async () => {
-    
-        await AppleAuthentication.requestAsync({
-          requestedScopes: [AppleAuthentication.Scope.FULL_NAME, AppleAuthentication.Scope.EMAIL],
+export const ReactNativeAppleAuthentication = {
+  requestAppleAuthentication: function(callback) {
+    if(Platform.OS === 'ios') {
+      await RCTAppleAuthentication.requestAsync({
+          requestedScopes: [RCTAppleAuthentication.Scope.FULL_NAME, RCTAppleAuthentication.Scope.EMAIL],
         }).then((response) => {
           callBack(response) //Display response
           }, (error) => {
             callBack(error) //Display error
-           
-        });
-
-  }} />
-  }else{
-  return null
-
+          });
+    } else {
+      return null
+    }
   }
-   
 }
-
-export default AppleAuthentication;

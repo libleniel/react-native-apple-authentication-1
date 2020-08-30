@@ -27,6 +27,7 @@ DerivedData
 *.ipa
 *.xcuserstate
 project.xcworkspace
+IDEWorkspaceChecks.plist
 
 # Android/IntelliJ
 #
@@ -40,3 +41,7 @@ local.properties
 buck-out/
 \.buckd/
 *.keystore
+
+# Example
+example/*
+

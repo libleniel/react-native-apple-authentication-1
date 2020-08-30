@@ -8,12 +8,15 @@
     return dispatch_get_main_queue();
 }
 
-RCT_EXPORT_MODULE()
+RCT_EXPORT_MODULE(ReactNativeAppleAuthentication)
 
--(NSDictionary *)constantsToExport
+- (NSDictionary *)constantsToExport
 {
     if (@available(iOS 13.0, *)) { // <=== add this
-        NSDictionary* scopes = @{@"FULL_NAME": ASAuthorizationScopeFullName, @"EMAIL": ASAuthorizationScopeEmail};
+        NSDictionary* scopes = @{
+            @"FULL_NAME": ASAuthorizationScopeFullName,
+            @"EMAIL": ASAuthorizationScopeEmail
+        };
         NSDictionary* operations = @{
             @"LOGIN": ASAuthorizationOperationLogin,
             @"REFRESH": ASAuthorizationOperationRefresh,
@@ -128,6 +131,7 @@ RCT_EXPORT_METHOD(requestAsync:(NSDictionary *)options
     NSLog(@" Error code%@", error);
   _promiseReject(@"authorization", error.description, error);
 }
+
 //RCT_EXPORT_METHOD(sampleMethod:(NSString *)stringArgument numberParameter:(nonnull NSNumber *)numberArgument callback:(RCTResponseSenderBlock)callback)
 //{
 //    // TODO: Implement some actually useful functionality
