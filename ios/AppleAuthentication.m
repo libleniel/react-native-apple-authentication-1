@@ -52,7 +52,6 @@ RCT_EXPORT_MODULE(ReactNativeAppleAuthentication)
   return YES;
 }
 
-
 RCT_EXPORT_METHOD(requestAsync:(NSDictionary *)options
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
@@ -60,27 +59,32 @@ RCT_EXPORT_METHOD(requestAsync:(NSDictionary *)options
   _promiseResolve = resolve;
   _promiseReject = reject;
   
-  ASAuthorizationAppleIDProvider* appleIDProvider = [[ASAuthorizationAppleIDProvider alloc] init];
-  ASAuthorizationAppleIDRequest* request = [appleIDProvider createRequest];
-  request.requestedScopes = options[@"requestedScopes"];
-  if (options[@"requestedOperation"]) {
-    request.requestedOperation = options[@"requestedOperation"];
+  if (@available(iOS 13.0, *)) {
+    ASAuthorizationAppleIDProvider* appleIDProvider = [[ASAuthorizationAppleIDProvider alloc] init];
+    
+    ASAuthorizationAppleIDRequest* request = [appleIDProvider createRequest];
+    request.requestedScopes = options[@"requestedScopes"];
+    if (options[@"requestedOperation"]) {
+      request.requestedOperation = options[@"requestedOperation"];
+    }
+    
+    ASAuthorizationController* ctrl = [[ASAuthorizationController alloc] initWithAuthorizationRequests:@[request]];
+    ctrl.presentationContextProvider = self;
+    ctrl.delegate = self;
+    [ctrl performRequests];
+  } else {
+    // Fallback on earlier versions
   }
-  
-  ASAuthorizationController* ctrl = [[ASAuthorizationController alloc] initWithAuthorizationRequests:@[request]];
-  ctrl.presentationContextProvider = self;
-  ctrl.delegate = self;
-  [ctrl performRequests];
 }
 
 
-- (ASPresentationAnchor)presentationAnchorForAuthorizationController:(ASAuthorizationController *)controller {
+- (ASPresentationAnchor)presentationAnchorForAuthorizationController:(ASAuthorizationController *)controller API_AVAILABLE(ios(13.0)) {
   return RCTKeyWindow();
 }
 
 
 - (void)authorizationController:(ASAuthorizationController *)controller
-   didCompleteWithAuthorization:(ASAuthorization *)authorization {
+   didCompleteWithAuthorization:(ASAuthorization *)authorization API_AVAILABLE(ios(13.0)) {
   ASAuthorizationAppleIDCredential* credential = authorization.credential;
   NSString *identityToken;
   if ([credential valueForKey:@"identityToken"] != nil) {
@@ -96,9 +100,11 @@ RCT_EXPORT_METHOD(requestAsync:(NSDictionary *)options
     ];
   }
 
-  NSMutableDictionary *fullName;
+  NSMutableDictionary *fullNameData;
+  __block NSString *fullName;
+  
   if ([credential valueForKey:@"fullName"] != nil) {
-    fullName = [[credential.fullName dictionaryWithValuesForKeys:@[
+    fullNameData = [[credential.fullName dictionaryWithValuesForKeys:@[
         @"namePrefix",
         @"givenName",
         @"middleName",
@@ -106,13 +112,29 @@ RCT_EXPORT_METHOD(requestAsync:(NSDictionary *)options
         @"nameSuffix",
         @"nickname",
     ]] mutableCopy];
-    [fullName enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+    
+//    NSLog(@"Apple Auth Full Name Data are %@", fullNameData);
+    
+    [fullNameData enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
       if (obj == nil) {
-        fullName[key] = [NSNull null];
+        fullNameData[key] = [NSNull null];
+      }
+      
+      if (fullNameData[key] != [NSNull null]) {
+          if (fullName == nil) {
+            fullName = [NSString stringWithFormat:@"%@", fullNameData[key]];
+          } else {
+            fullName = [fullName stringByAppendingFormat:@" %@", fullNameData[key]];
+          }
       }
     }];
   }
+  
+//  NSLog(@"Apple Auth  Result Full Name Data %@", fullNameData);
+//  NSLog(@"Apple Auth Full Name %@", fullName);
+  
   NSDictionary* user = @{
+                         @"fullNameData": RCTNullIfNil(fullNameData),
                          @"fullName": RCTNullIfNil(fullName),
                          @"email": RCTNullIfNil(credential.email),
                          @"user": credential.user,
@@ -122,13 +144,17 @@ RCT_EXPORT_METHOD(requestAsync:(NSDictionary *)options
                          @"authorizationCode": RCTNullIfNil(authorizationCode),
                          @"identityToken": RCTNullIfNil(identityToken)
                          };
+  
+//  NSLog(@"Apple Auth Credential %@", credential);
+//  NSLog(@"Apple Auth  User %@", user);
+  
   _promiseResolve(user);
 }
 
 
 -(void)authorizationController:(ASAuthorizationController *)controller
-           didCompleteWithError:(NSError *)error {
-    NSLog(@" Error code%@", error);
+          didCompleteWithError:(NSError *)error API_AVAILABLE(ios(13.0)) {
+//  NSLog(@"Apple Auth error %@", error);
   _promiseReject(@"authorization", error.description, error);
 }
 
