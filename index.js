@@ -16,5 +16,14 @@ export const ReactNativeAppleAuthentication = {
     } else {
       return null
     }
+  },
+  isFeatureActive: function() {
+    const majorVersionIOS = parseInt(Platform.Version, 10);
+
+    if (majorVersionIOS >= 13) {
+      return true;
+    }
+    
+    return false;
   }
 }
